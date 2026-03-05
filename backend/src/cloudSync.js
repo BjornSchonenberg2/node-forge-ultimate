@@ -141,8 +141,14 @@ function getRefreshToken() {
   return stored?.refresh_token || '';
 }
 
+function hasValidRefreshToken() {
+  const token = getRefreshToken();
+  if (!token) return false;
+  return !isPlaceholder(token, 'REPLACE_ME_REFRESH_TOKEN');
+}
+
 function isAuthenticated() {
-  return Boolean(getRefreshToken());
+  return hasValidRefreshToken();
 }
 
 function createOAuthClient() {
