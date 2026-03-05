@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Cloud, CloudOff, HardDrive, RefreshCw, Settings } from 'lucide-react';
 import './LandingPage.css';
 import leftLogo from '../data/logo/logoold.png';
@@ -21,6 +20,8 @@ export default function LandingPage({ onEnter }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [updateStatus, setUpdateStatus] = useState('');
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [updateReady, setUpdateReady] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('nodeforge.theme') || 'obsidian');
   const [cloudStatus, setCloudStatus] = useState({
     status: 'unknown',
@@ -178,6 +179,49 @@ export default function LandingPage({ onEnter }) {
     } catch {}
   }, [theme]);
 
+  useEffect(() => {
+    if (!window?.nodeForge?.on) return;
+    const off = window.nodeForge.on('update-status', (payload) => {
+      if (!payload) return;
+      switch (payload.status) {
+        case 'checking':
+          setUpdateStatus('Checking for updates...');
+          setUpdateInfo(null);
+          setUpdateReady(false);
+          break;
+        case 'available':
+          setUpdateStatus('Update available. Downloading...');
+          setUpdateInfo(payload.info || null);
+          setUpdateReady(false);
+          break;
+        case 'downloading':
+          setUpdateStatus(`Downloading update... ${payload.percent || 0}%`);
+          setUpdateReady(false);
+          break;
+        case 'downloaded':
+          setUpdateStatus('Update ready to install.');
+          setUpdateInfo(payload.info || null);
+          setUpdateReady(true);
+          break;
+        case 'not-available':
+          setUpdateStatus('You are on the latest version.');
+          setUpdateInfo(payload.info || null);
+          setUpdateReady(false);
+          break;
+        case 'error':
+          setUpdateStatus(payload.message || 'Update error.');
+          setUpdateReady(false);
+          break;
+        default:
+          break;
+      }
+      if (payload.status !== 'downloaded') {
+        setTimeout(() => setUpdateStatus(''), 3200);
+      }
+    });
+    return () => off && off();
+  }, []);
+
   const themes = [
     { id: 'obsidian', label: 'Obsidian' },
     { id: 'aurora', label: 'Aurora' },
@@ -186,8 +230,18 @@ export default function LandingPage({ onEnter }) {
   ];
 
   const handleCheckUpdates = () => {
-    setUpdateStatus('Update service not configured yet.');
+    if (window?.nodeForge?.send) {
+      window.nodeForge.send('check-updates');
+      return;
+    }
+    setUpdateStatus('Update service only available in desktop app.');
     setTimeout(() => setUpdateStatus(''), 3200);
+  };
+
+  const handleInstallUpdate = () => {
+    if (window?.nodeForge?.send) {
+      window.nodeForge.send('install-update');
+    }
   };
 
   const filtered = useMemo(() => {
@@ -685,6 +739,15 @@ export default function LandingPage({ onEnter }) {
               </button>
               {updateStatus && (
                 <div className="lander-settings-note">{updateStatus}</div>
+              )}
+              {updateReady && (
+                <button
+                  type="button"
+                  className="lander-settings-action"
+                  onClick={handleInstallUpdate}
+                >
+                  Install update
+                </button>
               )}
             </div>
             <div className="lander-settings-section">

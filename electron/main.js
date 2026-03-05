@@ -1,4 +1,5 @@
 const { app, BrowserWindow, session, ipcMain } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const path = require('path');
 const { fork } = require('child_process');
@@ -14,6 +15,12 @@ let handSettings = {
   keepAliveMs: 1500,
   enabled: true,
 };
+
+function sendUpdateStatus(status, payload = {}) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', { status, ...payload });
+  }
+}
 
 function startBackend() {
   if (process.env.NODE_FORGE_SKIP_BACKEND === '1') {
@@ -133,6 +140,20 @@ app.whenReady().then(() => {
   createWindow();
   createHandWindow();
 
+  autoUpdater.autoDownload = true;
+  autoUpdater.on('checking-for-update', () => sendUpdateStatus('checking'));
+  autoUpdater.on('update-available', (info) => sendUpdateStatus('available', { info }));
+  autoUpdater.on('update-not-available', (info) => sendUpdateStatus('not-available', { info }));
+  autoUpdater.on('error', (err) =>
+    sendUpdateStatus('error', { message: err?.message || 'Update error' })
+  );
+  autoUpdater.on('download-progress', (progress) =>
+    sendUpdateStatus('downloading', {
+      percent: Math.round(progress?.percent || 0),
+    })
+  );
+  autoUpdater.on('update-downloaded', (info) => sendUpdateStatus('downloaded', { info }));
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
@@ -172,4 +193,14 @@ ipcMain.on('hand-gesture', (_ev, payload) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('hand-gesture', payload || {});
   }
+});
+
+ipcMain.on('check-updates', () => {
+  autoUpdater.checkForUpdates().catch((err) => {
+    sendUpdateStatus('error', { message: err?.message || 'Update error' });
+  });
+});
+
+ipcMain.on('install-update', () => {
+  autoUpdater.quitAndInstall();
 });

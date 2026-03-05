@@ -1,32 +1,39 @@
 {
   "homepage": ".",
-  "name": "Node Forge",
+  "name": "node-forge-ultimate",
   "version": "1.0.0",
   "private": true,
   "main": "electron/main.js",
-  "dependencies": {
-    "@mediapipe/camera_utils": "^0.3.1675466862",
-    "@mediapipe/drawing_utils": "^0.3.1675466124",
-    "@mediapipe/hands": "^0.4.1675469240",
-    "@react-three/drei": "^10.7.6",
-    "@react-three/fiber": "^9.4.0",
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^13.5.0",
-    "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "file-saver": "^2.0.5",
-    "googleapis": "^133.0.0",
-    "jszip": "^3.10.1",
-    "lucide-react": "^0.552.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "three": "^0.181.2",
-    "three-mesh-bvh": "^0.9.6",
-    "uuid": "^13.0.0",
-    "web-vitals": "^2.1.4"
+  "build": {
+    "appId": "com.nodeforge.ultimate",
+    "productName": "Node Forge Ultimate",
+    "files": [
+      "build/**/*",
+      "electron/**/*",
+      "backend/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "BjornSchonenberg2",
+        "repo": "node-forge-ultimate"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   },
+  
   "scripts": {
     "kill-ports": "node scripts/kill-ports.js 3000 17811",
     "prestart": "npm run kill-ports",
@@ -39,6 +46,7 @@
     "dev:desktop": "concurrently -k \"npm run start:backend\" \"cross-env NODE_FORGE_SKIP_BACKEND=1 NODE_FORGE_DEVTOOLS=1 npm run desktop\"",
     "desktop": "electron .",
     "build": "react-scripts build",
+    "dist": "electron-builder",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
@@ -65,9 +73,34 @@
   "devDependencies": {
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
+    "electron-builder": "^24.13.3",
     "electron": "^30.0.6",
     "gh-pages": "^6.3.0",
     "react-scripts": "^5.0.1",
     "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "@mediapipe/camera_utils": "^0.3.1675466862",
+    "@mediapipe/drawing_utils": "^0.3.1675466124",
+    "@mediapipe/hands": "^0.4.1675469240",
+    "@react-three/drei": "^10.7.6",
+    "@react-three/fiber": "^9.4.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "cors": "^2.8.5",
+    "electron-updater": "^6.3.9",
+    "express": "^4.19.2",
+    "file-saver": "^2.0.5",
+    "googleapis": "^133.0.0",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.552.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "three": "^0.181.2",
+    "three-mesh-bvh": "^0.9.6",
+    "uuid": "^13.0.0",
+    "web-vitals": "^2.1.4"
   }
 }
