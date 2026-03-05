@@ -7,11 +7,47 @@ const { DIRS, listProjects } = require('./storage');
 const DRIVE_FOLDER_DEFAULT =
   '1DjFapXNpbkzqmFbiOLYWmgTa2wXjR9dT';
 
+function loadSharedConfig() {
+  const candidates = [
+    path.join(process.cwd(), 'node-forge.config.json'),
+    path.join(DIRS.root, 'node-forge.config.json'),
+    path.join(path.dirname(DIRS.root), 'node-forge.config.json')
+  ];
+  for (const filePath of candidates) {
+    if (!filePath) continue;
+    if (!fs.existsSync(filePath)) continue;
+    try {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return parsed;
+      }
+    } catch (err) {
+      // ignore invalid config
+    }
+  }
+  return null;
+}
+
+const sharedConfig = loadSharedConfig() || {};
+
 const CLOUD_CONFIG = {
-  folder: process.env.NODE_FORGE_DRIVE_FOLDER_ID || '1DjFapXNpbkzqmFbiOLYWmgTa2wXjR9dT',
-  clientId: process.env.NODE_FORGE_DRIVE_CLIENT_ID || 'REPLACE_ME_CLIENT_ID',
-  clientSecret: process.env.NODE_FORGE_DRIVE_CLIENT_SECRET || 'REPLACE_ME_CLIENT_SECRET',
-  refreshToken: process.env.NODE_FORGE_DRIVE_REFRESH_TOKEN || ''
+  folder:
+    process.env.NODE_FORGE_DRIVE_FOLDER_ID ||
+    sharedConfig.driveFolderId ||
+    DRIVE_FOLDER_DEFAULT,
+  clientId:
+    process.env.NODE_FORGE_DRIVE_CLIENT_ID ||
+    sharedConfig.clientId ||
+    'REPLACE_ME_CLIENT_ID',
+  clientSecret:
+    process.env.NODE_FORGE_DRIVE_CLIENT_SECRET ||
+    sharedConfig.clientSecret ||
+    'REPLACE_ME_CLIENT_SECRET',
+  refreshToken:
+    process.env.NODE_FORGE_DRIVE_REFRESH_TOKEN ||
+    sharedConfig.refreshToken ||
+    ''
 };
 
 const TOKEN_PATH = path.join(DIRS.root, 'drive-token.json');
