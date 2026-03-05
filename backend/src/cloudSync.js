@@ -29,6 +29,36 @@ function loadSharedConfig() {
   return null;
 }
 
+function getSharedConfigPath() {
+  const candidates = [
+    path.join(process.cwd(), 'node-forge.config.json'),
+    path.join(DIRS.root, 'node-forge.config.json'),
+    path.join(path.dirname(DIRS.root), 'node-forge.config.json')
+  ];
+  for (const filePath of candidates) {
+    if (filePath && fs.existsSync(filePath)) return filePath;
+  }
+  return path.join(process.cwd(), 'node-forge.config.json');
+}
+
+function writeSharedConfig(patch) {
+  const target = getSharedConfigPath();
+  let next = {};
+  try {
+    if (fs.existsSync(target)) {
+      next = JSON.parse(fs.readFileSync(target, 'utf-8')) || {};
+    }
+  } catch (err) {
+    next = {};
+  }
+  const merged = { ...next, ...patch };
+  try {
+    fs.writeFileSync(target, JSON.stringify(merged, null, 2));
+  } catch (err) {
+    // best-effort only
+  }
+}
+
 const sharedConfig = loadSharedConfig() || {};
 
 const CLOUD_CONFIG = {
@@ -91,6 +121,15 @@ function loadStoredToken() {
 function saveToken(token) {
   try {
     fs.writeFileSync(TOKEN_PATH, JSON.stringify(token, null, 2));
+    if (token?.refresh_token) {
+      writeSharedConfig({
+        driveFolderId: extractFolderId(CLOUD_CONFIG.folder) || DRIVE_FOLDER_DEFAULT,
+        clientId: CLOUD_CONFIG.clientId,
+        clientSecret: CLOUD_CONFIG.clientSecret,
+        refreshToken: token.refresh_token,
+        redirectUri: getRedirectUri()
+      });
+    }
   } catch (err) {
     // best-effort only
   }
