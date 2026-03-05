@@ -135,6 +135,13 @@ export default function LandingPage({ onEnter }) {
   }, [loadProjects]);
 
   const handleConnectDrive = useCallback(async () => {
+    if (!cloudStatus.configured) {
+      setCloudStatus((prev) => ({
+        ...prev,
+        message: 'Add client ID/secret to node-forge.config.json and restart the app.'
+      }));
+      return;
+    }
     try {
       const response = await fetch(`${API_ROOT}/api/cloud/auth/url`);
       const data = await response.json();
@@ -156,7 +163,7 @@ export default function LandingPage({ onEnter }) {
         message: 'Unable to start Drive authorization.'
       }));
     }
-  }, []);
+  }, [cloudStatus.configured]);
 
   useEffect(() => {
     let active = true;
@@ -317,7 +324,7 @@ export default function LandingPage({ onEnter }) {
 
   const cloudOk = cloudStatus.status === 'ok';
   const cloudSyncing = cloudStatus.status === 'syncing' || cloudStatus.syncInProgress;
-  const cloudNeedsAuth = cloudStatus.configured && !cloudStatus.authenticated;
+  const cloudNeedsAuth = !cloudStatus.authenticated;
   const cloudTitle = cloudOk
     ? 'Synced with cloud'
     : cloudStatus.status === 'not_configured'
