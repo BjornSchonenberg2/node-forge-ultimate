@@ -1,0 +1,19 @@
+node_modules/
+build/
+dist/
+.idea/
+*.log
+*.tmp
+*.cache
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Local configs
+*.local
+*.local.*

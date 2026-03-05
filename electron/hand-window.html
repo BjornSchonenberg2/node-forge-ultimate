@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hand Tracking Controls</title>
+    <style>
+      :root{
+        --bg:#0b0f14;
+        --panel:#111827;
+        --border:rgba(255,255,255,0.12);
+        --text:#e2e8f0;
+        --muted:rgba(226,232,240,0.6);
+        --accent:#38bdf8;
+      }
+      *{box-sizing:border-box}
+      html,body{
+        margin:0;
+        height:100%;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .wrap{
+        padding:12px;
+        display:grid;
+        gap:12px;
+      }
+      .card{
+        background: linear-gradient(160deg, rgba(12,17,28,0.98), rgba(15,23,42,0.98));
+        border:1px solid var(--border);
+        border-radius:14px;
+        padding:12px;
+        box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+      }
+      h1{
+        margin:0 0 6px 0;
+        font-size:14px;
+        letter-spacing:0.4px;
+      }
+      label{
+        font-size:12px;
+        display:grid;
+        gap:6px;
+        color: var(--muted);
+      }
+      input[type="range"]{
+        width:100%;
+      }
+      .row{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        font-size:12px;
+      }
+      .pill{
+        padding:6px 10px;
+        border-radius:999px;
+        background: rgba(56,189,248,0.12);
+        border:1px solid rgba(56,189,248,0.4);
+        color: var(--text);
+        font-size:11px;
+        cursor:pointer;
+      }
+      .muted{color:var(--muted)}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>Hand Tracking</h1>
+        <div class="row">
+          <span class="muted">Enabled</span>
+          <button id="toggle" class="pill">On</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <label>
+          Cursor Speed
+          <input id="speed" type="range" min="1.0" max="12.0" step="0.2" value="4.2" />
+          <div class="row"><span class="muted">Value</span><span id="speedVal">1.6</span></div>
+        </label>
+      </div>
+
+      <div class="card">
+        <label>
+          Cursor Smoothing
+          <input id="smooth" type="range" min="0.02" max="0.98" step="0.02" value="0.55" />
+          <div class="row"><span class="muted">Value</span><span id="smoothVal">0.22</span></div>
+        </label>
+      </div>
+
+      <div class="card">
+        <label>
+          Keep Alive (ms)
+          <input id="keep" type="range" min="0" max="8000" step="200" value="2500" />
+          <div class="row"><span class="muted">Value</span><span id="keepVal">1500</span></div>
+        </label>
+      </div>
+
+      <div class="card">
+        <label>
+          Dead Zone (radius)
+          <input id="deadzone" type="range" min="0" max="0.35" step="0.01" value="0.06" />
+          <div class="row"><span class="muted">Value</span><span id="deadzoneVal">0.06</span></div>
+        </label>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <span class="muted">Camera</span>
+          <span id="camStatus" class="muted">Starting…</span>
+        </div>
+        <div style="position:relative;width:100%;aspect-ratio:1/1;margin-top:10px;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:#0b0f14;">
+          <video id="video" autoplay muted playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transform:scaleX(-1);background:#0b0f14;"></video>
+          <canvas id="overlay" style="position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const api = window.nodeForge;
+      const speed = document.getElementById('speed');
+      const smooth = document.getElementById('smooth');
+      const keep = document.getElementById('keep');
+      const deadzone = document.getElementById('deadzone');
+      const speedVal = document.getElementById('speedVal');
+      const smoothVal = document.getElementById('smoothVal');
+      const keepVal = document.getElementById('keepVal');
+      const deadzoneVal = document.getElementById('deadzoneVal');
+      const toggle = document.getElementById('toggle');
+      const camStatus = document.getElementById('camStatus');
+      const video = document.getElementById('video');
+      const overlay = document.getElementById('overlay');
+      const octx = overlay.getContext('2d');
+      let enabled = true;
+      let lastClick = 0;
+      let pinchActive = false;
+      let fistActive = false;
+
+      function send(){
+        if (!api?.send) return;
+        api.send('hand-settings', {
+          speed: Number(speed.value),
+          smoothing: Number(smooth.value),
+          keepAliveMs: Number(keep.value),
+          deadzone: Number(deadzone.value),
+          enabled,
+        });
+      }
+
+      speed.addEventListener('input', () => { speedVal.textContent = speed.value; send(); });
+      smooth.addEventListener('input', () => { smoothVal.textContent = smooth.value; send(); });
+      keep.addEventListener('input', () => { keepVal.textContent = keep.value; send(); });
+      deadzone.addEventListener('input', () => { deadzoneVal.textContent = deadzone.value; send(); });
+      toggle.addEventListener('click', () => {
+        enabled = !enabled;
+        toggle.textContent = enabled ? 'On' : 'Off';
+        toggle.style.background = enabled ? 'rgba(56,189,248,0.12)' : 'rgba(148,163,184,0.15)';
+        send();
+      });
+
+      api?.on?.('hand-settings', (s) => {
+        if (!s) return;
+        if (typeof s.speed === 'number') { speed.value = s.speed; speedVal.textContent = s.speed; }
+        if (typeof s.smoothing === 'number') { smooth.value = s.smoothing; smoothVal.textContent = s.smoothing; }
+        if (typeof s.keepAliveMs === 'number') { keep.value = s.keepAliveMs; keepVal.textContent = s.keepAliveMs; }
+        if (typeof s.deadzone === 'number') { deadzone.value = s.deadzone; deadzoneVal.textContent = s.deadzone; }
+        if (typeof s.enabled === 'boolean') {
+          enabled = s.enabled;
+          toggle.textContent = enabled ? 'On' : 'Off';
+          toggle.style.background = enabled ? 'rgba(56,189,248,0.12)' : 'rgba(148,163,184,0.15)';
+        }
+      });
+
+      api?.send?.('hand-ready', {});
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script>
+      const hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      });
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.7
+      });
+
+      function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+      function fingerExtended(lm, tip, pip){ return lm[tip].y < lm[pip].y; }
+
+      hands.onResults((results) => {
+        const W = video.videoWidth || 320;
+        const H = video.videoHeight || 240;
+        overlay.width = W;
+        overlay.height = H;
+        octx.clearRect(0,0,W,H);
+
+        // deadzone circle
+        const dz = Number(deadzone.value || 0);
+        if (dz > 0) {
+          const r = dz * Math.min(W, H);
+          octx.beginPath();
+          octx.arc(W/2, H/2, r, 0, Math.PI*2);
+          octx.strokeStyle = "rgba(56,189,248,0.35)";
+          octx.lineWidth = 2;
+          octx.stroke();
+        }
+
+        const lm = results.multiHandLandmarks?.[0];
+        if (lm) {
+          drawConnectors(octx, lm, HAND_CONNECTIONS, { color: "#49ffa7", lineWidth: 3 });
+          drawLandmarks(octx, lm, { color: "#ff5b7d", lineWidth: 2 });
+
+          const tip = lm[8];
+          const thumb = lm[4];
+          const idxPip = lm[6];
+          const midTip = lm[12];
+          const midPip = lm[10];
+          const ringTip = lm[16];
+          const ringPip = lm[14];
+          const pinkyTip = lm[20];
+          const pinkyPip = lm[18];
+
+          const idxExt = fingerExtended(lm, 8, 6);
+          const midExt = fingerExtended(lm, 12, 10);
+          const ringExt = fingerExtended(lm, 16, 14);
+          const pinkyExt = fingerExtended(lm, 20, 18);
+          const extCount = [idxExt, midExt, ringExt, pinkyExt].filter(Boolean).length;
+          const isFist = extCount === 0;
+
+          let pinch = false;
+          if (thumb && tip) {
+            pinch = dist(thumb, tip) < 0.055;
+          }
+
+          if (tip) {
+            const px = 1 - tip.x;
+            const py = tip.y;
+            const dx = px - 0.5;
+            const dy = py - 0.5;
+            const inDead = dz > 0 && Math.hypot(dx, dy) < dz;
+            const visible = !inDead;
+            api?.send?.('hand-pointer', { x: px, y: py, visible });
+
+            const now = performance.now();
+            if (pinch && !pinchActive && (now - lastClick) > 220) {
+              const isDouble = (now - lastClick) < 320;
+              lastClick = now;
+              pinchActive = true;
+              api?.send?.('hand-gesture', { type: isDouble ? 'double' : 'click', x: px, y: py });
+            } else if (!pinch) {
+              pinchActive = false;
+            }
+
+            if (isFist && !fistActive) {
+              fistActive = true;
+              api?.send?.('hand-gesture', { type: 'hold_start', x: px, y: py });
+            } else if (!isFist && fistActive) {
+              fistActive = false;
+              api?.send?.('hand-gesture', { type: 'hold_end', x: px, y: py });
+            }
+          }
+        } else {
+          api?.send?.('hand-pointer', { visible: false });
+        }
+      });
+
+      async function startCam(){
+        try{
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 420, height: 320, facingMode: "user" }, audio: false });
+          video.srcObject = stream;
+          await video.play();
+          camStatus.textContent = "Live";
+          const loop = async () => {
+            await hands.send({ image: video });
+            requestAnimationFrame(loop);
+          };
+          loop();
+        }catch(err){
+          camStatus.textContent = "Blocked";
+        }
+      }
+      startCam();
+    </script>
+  </body>
+</html>
