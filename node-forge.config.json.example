@@ -1,0 +1,7 @@
+{
+  "driveFolderId": "1DjFapXNpbkzqmFbiOLYWmgTa2wXjR9dT",
+  "clientId": "REPLACE_ME_CLIENT_ID",
+  "clientSecret": "REPLACE_ME_CLIENT_SECRET",
+  "refreshToken": "REPLACE_ME_REFRESH_TOKEN",
+  "redirectUri": "http://localhost:17811/api/cloud/auth/callback"
+}

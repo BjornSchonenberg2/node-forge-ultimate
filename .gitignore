@@ -17,6 +17,9 @@ Thumbs.db
 # App data
 backend/data/
 
+# Local config (do not commit secrets)
+node-forge.config.json
+
 # Local configs
 *.local
 *.local.*

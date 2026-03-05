@@ -16,6 +16,9 @@
     "directories": {
       "output": "dist"
     },
+    "extraResources": [
+      "node-forge.config.json"
+    ],
     "publish": [
       {
         "provider": "github",

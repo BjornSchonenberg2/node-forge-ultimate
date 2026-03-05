@@ -16,6 +16,48 @@ let handSettings = {
   enabled: true,
 };
 
+function loadSharedConfig() {
+  const candidates = [
+    path.join(app.getPath('userData'), 'node-forge.config.json'),
+    path.join(process.cwd(), 'node-forge.config.json'),
+    path.join(process.resourcesPath || '', 'node-forge.config.json')
+  ];
+  for (const filePath of candidates) {
+    if (!filePath) continue;
+    if (!fs.existsSync(filePath)) continue;
+    try {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return { config: parsed, filePath };
+      }
+    } catch (err) {
+      // ignore invalid config
+    }
+  }
+  return { config: null, filePath: null };
+}
+
+function applySharedConfig() {
+  const { config } = loadSharedConfig();
+  if (!config) return;
+  if (config.driveFolderId) {
+    process.env.NODE_FORGE_DRIVE_FOLDER_ID = String(config.driveFolderId);
+  }
+  if (config.clientId) {
+    process.env.NODE_FORGE_DRIVE_CLIENT_ID = String(config.clientId);
+  }
+  if (config.clientSecret) {
+    process.env.NODE_FORGE_DRIVE_CLIENT_SECRET = String(config.clientSecret);
+  }
+  if (config.refreshToken) {
+    process.env.NODE_FORGE_DRIVE_REFRESH_TOKEN = String(config.refreshToken);
+  }
+  if (config.redirectUri) {
+    process.env.NODE_FORGE_DRIVE_REDIRECT_URI = String(config.redirectUri);
+  }
+}
+
 function sendUpdateStatus(status, payload = {}) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('update-status', { status, ...payload });
@@ -105,6 +147,8 @@ function createHandWindow() {
 }
 
 app.whenReady().then(() => {
+  applySharedConfig();
+
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     if (details.url.startsWith('file://')) {
       const isHandWindow = details.url.includes('hand-window.html');
