@@ -20,6 +20,17 @@ backend/data/
 # Local config (do not commit secrets)
 node-forge.config.json
 
+# OpenNI streamer build artifacts
+backend/tools/openni-streamer/*.exe
+backend/tools/openni-streamer/OpenNI2.dll
+
 # Local configs
 *.local
 *.local.*
+backend/sdk/*.zip
+backend/sdk/OpenNI_*/
+backend/tools/
+tmp_*.py
+main.obj
+tmp-mediapipe/
+mediapipe-tasks-vision-*.tgz
